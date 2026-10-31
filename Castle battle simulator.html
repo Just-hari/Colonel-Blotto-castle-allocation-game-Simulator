@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Castle battle simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF1F4; --surface:#FFFFFF; --ink:#1B2333; --muted:#5B6578; --line:#D5DBE3;
+  --acc:#2F5BD3; --good:#1F8A5B; --bad:#C8553D; --mid:#9AA4B6;
+  --p1:#1F8A5B; --p2:#73B492; --p3:#DDA65E; --p4:#C8553D;
+  color-scheme:light; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141922; --surface:#1C2330; --ink:#E7EBF2; --muted:#9AA4B6; --line:#2D3646;
+    --acc:#7096FF; --good:#2FA872; --bad:#E06B52; --mid:#5D6778;
+    --p1:#2FA872; --p2:#5E9C7C; --p3:#B98745; --p4:#C2563F; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141922; --surface:#1C2330; --ink:#E7EBF2; --muted:#9AA4B6; --line:#2D3646;
+  --acc:#7096FF; --good:#2FA872; --bad:#E06B52; --mid:#5D6778;
+  --p1:#2FA872; --p2:#5E9C7C; --p3:#B98745; --p4:#C2563F; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.55;font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:"Bricolage Grotesque","Source Sans 3",system-ui,sans-serif;line-height:1.15;margin:0}
+h1{font-size:clamp(2rem,5vw,2.9rem);letter-spacing:-0.02em}
+h2{font-size:1.35rem;margin-bottom:6px}
+p{margin:0}
+.wrap{max-width:1240px;margin:0 auto;padding:0 20px}
+.duo{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);margin-top:40px}
+.duo>.left{padding-right:28px;border-right:2px solid var(--line)}
+.duo>.left>section.block:first-child{margin-top:0}
+.duo>.left>section.block+section.block{margin-top:28px;padding-top:28px;border-top:2px solid var(--line)}
+.duo>.side{padding-left:28px}
+.duo>.side>section.block:first-child{margin-top:0}
+.duo>.side>section.block+section.block{margin-top:28px;padding-top:28px;border-top:2px solid var(--line)}
+.duo>.side table{font-size:.88rem}
+.duo>.side th,.duo>.side td{padding:8px 6px;white-space:normal}
+@media (max-width:960px){.duo{grid-template-columns:1fr}.duo>.left{padding-right:0;border-right:0;padding-bottom:28px;border-bottom:2px solid var(--line)}.duo>.side{padding-left:0;padding-top:28px}}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+header{padding:36px 0 8px}
+.title{text-align:center}
+header{padding-bottom:0}
+.plansec{margin-top:18px}
+.rulesec{margin-top:28px}
+.rulesec>.hlabel:first-child{margin-top:0}
+body[data-game="four"]{--acc:#B8323F}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) body[data-game="four"]{--acc:#FF6B7D}}
+:root[data-theme="dark"] body[data-game="four"]{--acc:#FF6B7D}
+.round tbody.grp+tbody.grp tr:first-child td{border-top:3px solid var(--line)}
+.round td.gcell{font-weight:700;vertical-align:middle;border-right:1px solid var(--line);background:var(--surface)}
+.simple{padding:12px 14px;margin-top:8px}
+.planrow{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap}
+.simple .plan{display:grid;grid-template-columns:repeat(5,minmax(64px,78px));gap:8px}
+.simple .pc{gap:1px}
+.simple .pc .nm{font-size:.82rem}
+.simple .pc .pt{font-size:.72rem}
+.simple .pc input{font-size:1.05rem;padding:6px 2px;margin-top:3px}
+.opts{display:flex;gap:10px;flex-wrap:wrap}
+.opts label{display:flex;flex-direction:column;gap:3px;font-size:.78rem;color:var(--muted)}
+.opts select{font-size:.95rem;padding:7px 6px;min-width:110px}
+.simple .run{margin:0;width:auto;padding:9px 22px;font-size:1rem}
+.meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:.85rem}
+.meta .status{margin:0;min-height:0;text-align:right;font-size:.85rem}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;text-align:center}
+.stats>div{padding:8px 4px}
+.stats>div+div{border-left:1px solid var(--line)}
+.stats b{display:block;font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(1.8rem,4vw,2.4rem);line-height:1.1}
+.stats span{font-size:.88rem;color:var(--muted)}
+@media (max-width:560px){.stats>div+div{border-left:0}.simple .plan{grid-template-columns:repeat(5,1fr);width:100%}.simple .run{width:100%}}
+.hlabel{font-size:1.1rem;margin:28px 0 0}
+.rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.rgrid>div{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--acc);border-radius:10px;padding:14px 16px}
+.rgrid h3{font-size:1.02rem;margin-bottom:6px}
+.rgrid p{font-size:.95rem}
+@media (max-width:960px){.rgrid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:560px){.rgrid{grid-template-columns:1fr}}
+.steps{margin-top:12px !important}
+.steps{margin:18px 0 0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;counter-reset:s}
+.steps li{counter-increment:s;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 46px;position:relative;font-size:.95rem}
+.steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-weight:600;font-size:.85rem;display:flex;align-items:center;justify-content:center}
+@media (max-width:700px){.steps{grid-template-columns:1fr}}
+section.block{margin-top:40px}
+.sub{color:var(--muted);max-width:66ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px;margin-top:14px}
+/* Plan */
+.plan{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;align-items:end}
+.pc{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center}
+.pc svg{fill:var(--ink);opacity:.85}
+.pc .nm{font-weight:600;font-size:.92rem;line-height:1.2}
+.pc .pt{color:var(--muted);font-size:.82rem}
+.pc input{width:100%;max-width:90px;font:inherit;font-size:1.25rem;font-weight:600;text-align:center;padding:8px 2px;border:2px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.pc input:focus{border-color:var(--acc)}
+.planbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}
+.total{font-weight:600}
+.total.bad{color:var(--bad)}
+select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+button.run{font:inherit;font-weight:600;background:var(--acc);color:#fff;border:0;border-radius:8px;padding:12px 22px;cursor:pointer;margin-top:16px;width:100%;font-size:1.05rem}
+button.run:disabled{opacity:.45;cursor:not-allowed}
+.status{font-size:.88rem;color:var(--muted);margin-top:8px;min-height:1.3em;text-align:center}
+/* Big result */
+.big{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.big .num{font-family:"Bricolage Grotesque",system-ui,sans-serif;font-size:clamp(3rem,9vw,4.6rem);font-weight:700;color:var(--acc);line-height:1}
+.big .of{font-size:1.2rem;color:var(--muted)}
+.explain{margin-top:10px;max-width:66ch}
+.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.trio div{border-radius:10px;padding:10px 12px;background:var(--bg)}
+.trio b{display:block;font-size:1.4rem;font-family:"Bricolage Grotesque",system-ui,sans-serif}
+.trio span{font-size:.88rem;color:var(--muted)}
+/* bars */
+.hb{display:grid;grid-template-columns:minmax(120px,190px) 1fr 64px;gap:10px;align-items:center;font-size:.95rem}
+.hb+.hb{margin-top:10px}
+.hb .track{height:22px;background:var(--bg);border-radius:6px;overflow:hidden}
+.hb .fill{height:100%;background:var(--acc);border-radius:6px;transition:width .3s ease}
+.hb .v{text-align:right;font-weight:600}
+.hb small{display:block;color:var(--muted);font-size:.8rem;line-height:1.2}
+@media (max-width:560px){.hb{grid-template-columns:110px 1fr 52px}}
+/* tables */
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{padding:9px 10px;text-align:center;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--muted);font-weight:600;font-size:.85rem;border-bottom:1px solid var(--line);vertical-align:bottom}
+tbody tr+tr td{border-top:1px solid var(--line)}
+td.me{font-weight:700;color:var(--acc)}
+td.won{background:color-mix(in srgb,var(--good) 18%,transparent);font-weight:700}
+td.shared,td.tie{background:var(--tie);font-weight:700}
+:root{--tie:#FFF3B0}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tie:#5E5422}}
+:root[data-theme="dark"]{--tie:#5E5422}
+td.lost{background:color-mix(in srgb,var(--bad) 16%,transparent)}
+td small{display:block;color:var(--muted);font-size:.8rem;font-weight:400}
+.tag{display:inline-block;font-weight:600;font-size:.85rem;padding:2px 10px;border-radius:20px}
+.round th,.round td{padding:9px 8px}
+tr.mine td{background:color-mix(in srgb,var(--acc) 12%,transparent);font-weight:600}
+.verdict{margin-top:14px;padding-left:14px;border-left:3px solid var(--acc)}
+.btn2{font:inherit;font-size:.95rem;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer;margin-top:14px}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:600}
+.slider{display:grid;grid-template-columns:1fr 50px;gap:2px 10px;align-items:center;margin-top:12px;font-size:.95rem}
+.slider input{width:100%;accent-color:var(--acc)}
+.slider output{text-align:right;color:var(--muted)}
+.slider small{grid-column:1/-1;color:var(--muted);font-size:.8rem;margin-top:-4px}
+.slider .lbl{grid-column:1/-1;display:flex;justify-content:space-between}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.88rem;color:var(--muted);margin-bottom:10px}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.battles{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:14px}
+@media (max-width:760px){.battles{grid-template-columns:1fr}}
+.battle{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px}
+.battle h3{font-size:1.02rem;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.battle h3 .tag{font-family:"Source Sans 3",system-ui,sans-serif;font-weight:600;font-size:.85rem;padding:2px 10px;border-radius:20px}
+.tag.w{background:color-mix(in srgb,var(--good) 20%,transparent);color:var(--good)}
+.tag.l{background:color-mix(in srgb,var(--bad) 20%,transparent);color:var(--bad)}
+.tag.t{background:var(--bg);color:var(--muted)}
+.battle .who{color:var(--muted);font-size:.88rem;margin-top:2px}
+.battle table{margin-top:8px;font-size:.9rem}
+.battle th,.battle td{padding:6px 6px}
+.runrow{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:16px}
+.runrow .run{margin-top:0;flex:1;min-width:200px}
+footer{padding:40px 0 48px;color:var(--muted);font-size:.9rem;max-width:66ch}
+@media (prefers-reduced-motion: reduce){.hb .fill{transition:none}}
+</style>
+</head>
+<body>
+<header class="wrap">
+  <h1 class="title" id="title">Head to head simulator</h1>
+</header>
+
+<main class="wrap">
+  <section class="block plansec">
+    <h2>Your plan</h2>
+    <div class="card simple">
+      <div class="planrow">
+        <div class="plan" id="plan"></div>
+        <div class="opts">
+          <label>Start from<select id="preset"></select></label>
+          <label><span id="countLabel">Opponents</span><select id="count">
+            <option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option selected>8</option><option>9</option>
+          </select></label>
+          <label>Game<select id="mode">
+            <option value="pair" selected>Head to head (Game 1)</option>
+            <option value="four">Four-way battle (Game 2)</option>
+          </select></label>
+        </div>
+        <button class="run" id="run">Play</button>
+      </div>
+      <div class="meta"><span class="total" id="total"></span><span class="status" id="status" role="status"></span></div>
+    </div>
+  </section>
+
+  <section class="block rulesec">
+    <h2 class="hlabel">The rules</h2>
+    <div class="rgrid" id="rgrid"></div>
+    <h2 class="hlabel">How the simulator works</h2>
+    <ol class="steps" id="steps"></ol>
+  </section>
+
+  <div class="duo">
+  <div class="left">
+  <section class="block">
+    <h2 id="battlesTitle">Every battle</h2>
+    <p class="sub" id="battlesSub"></p>
+    <div class="legend" id="legend" style="margin-top:12px"></div>
+    <div class="card tw" id="battles"></div>
+  </section>
+
+  <section class="block">
+    <h2>Who you’re playing against</h2>
+    <p class="sub">Nobody knows what real applicants will submit, so the simulator invents opponents based on common ways people play. These sliders set how common each type is.</p>
+    <details class="card">
+      <summary>Change the opponent mix</summary>
+      <div id="weights"></div>
+    </details>
+  </section>
+  </div>
+
+  <div class="side">
+  <section class="block">
+    <h2>Castles</h2>
+    <p class="sub" id="castlesSub"></p>
+    <div class="card" id="castles"></div>
+  </section>
+
+  <section class="block">
+    <h2>Compare with other plans</h2>
+    <p class="sub" id="compareSub"></p>
+    <div class="card tw"><table id="compare"></table></div>
+  </section>
+  </div>
+  </div>
+
+  <section class="block" style="border-top:2px solid var(--line);padding-top:28px">
+    <h2>Your result</h2>
+    <div class="card" id="result"></div>
+  </section>
+</main>
+<footer class="wrap">With only a handful of opponents or groups, luck plays a big part: one run can look great and the next run worse. Play a few times to get a feel for how your plan usually does. The opponents are invented, so this shows how a plan performs against this kind of field, not a guarantee of how real applicants will play.</footer>
+
+<script>
+(function(){
+  const GAME = 1;
+  const PAY = [9,4,2,0];
+  const SIMS = 20000;
+  const CASTLE_NAMES = ["Castle 1","Castle 2","Castle 3","Castle 4","Castle 5"];
+  const PRESETS = {
+    "My Game 1 plan":[2,11,21,31,35],
+    "My Game 2 plan":[0,0,37,0,63],
+    "Proportional":[7,13,20,27,33],
+    "Even split":[20,20,20,20,20],
+    "All-in on 4 & 5":[0,0,0,50,50],
+    "Top three":[0,0,33,33,34],
+    "All on castle 5":[0,0,0,0,100]
+  };
+  const STYLES = [
+    {name:"Proportional", v:[7,13,20,27,33], w:25, hint:"Soldiers in line with castle value"},
+    {name:"Even split", v:[20,20,20,20,20], w:10, hint:"20 on every castle"},
+    {name:"Round numbers", v:[0,10,20,30,40], w:15, hint:"0 / 10 / 20 / 30 / 40"},
+    {name:"All-in on 4 & 5", v:[0,0,0,50,50], w:10, hint:"Ignores the small castles"},
+    {name:"Top three", v:[0,0,33,33,34], w:12, hint:"Castles 3, 4 and 5 only"},
+    {name:"Beat-by-one", v:[3,12,21,31,33], w:10, hint:"Just above the round numbers"},
+    {name:"Random", v:null, w:14, hint:"Any split at all"},
+    {name:"Two-castle bets", v:"conc", w:14, hint:"Everything on two random castles"}
+  ];
+  const TEXT = GAME===1 ? {
+    rules:"You face other applicants one at a time. In each matchup, whoever sends more soldiers to a castle wins its points, and a tie splits them. Your score is your average points across all matchups, out of a possible 15.",
+    steps:["You enter how you’d split your 100 soldiers.","The simulator invents 20,000 opponents, based on common ways people play.","It plays your plan against each one, one on one, and averages your points, just like the real scoring."],
+    castleSub:"In each one-on-one matchup, how often your soldiers beat the opponent’s at each castle.",
+    extraTitle:"Your score against each type of player",
+    extraSub:"Average points you earn when facing each kind of opponent. This shows who your plan beats and who beats it."
+  } : {
+    rules:"You’re put in a random group of 4 players. Each castle goes to whoever sends the most soldiers, and ties split the points. Players are ranked by castle points: 1st gets 9, 2nd gets 4, 3rd gets 2, 4th gets 0. Your score is your average over thousands of groups.",
+    steps:["You enter how you’d split your 100 soldiers.","The simulator invents 20,000 groups, each with you and 3 opponents.","It plays every group, ranks the four players and averages your payout, just like the real scoring."],
+    castleSub:"In each group, how often you send the most soldiers to each castle. You have to beat all three opponents at once.",
+    extraTitle:"Where you finish",
+    extraSub:"Out of 20,000 groups, how often you come 1st, 2nd, 3rd or 4th."
+  };
+  let plan = (GAME===1?PRESETS["My Game 1 plan"]:PRESETS["My Game 2 plan"]).slice();
+  let noise = 4;
+
+  function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}}
+  function randomAlloc(r){const x=[0,0,0,0,0].map(()=>-Math.log(1-r()));const s=x.reduce((a,b)=>a+b,0);const v=x.map(t=>Math.floor(t/s*100));let rem=100-v.reduce((a,b)=>a+b,0);while(rem-->0)v[Math.floor(r()*5)]++;return v;}
+  function conc(r){const v=[0,0,0,0,0];const i=Math.floor(r()*5);let j=Math.floor(r()*4);if(j>=i)j++;const k=30+Math.floor(r()*41);v[i]=k;v[j]=100-k;return v;}
+  function noisy(base,r){const v=base.slice(),idx=[];base.forEach((x,i)=>{if(x>0)idx.push(i);});for(let k=0;k<noise;k++){const f=idx[Math.floor(r()*idx.length)];if(v[f]===0)continue;const t=idx[Math.floor(r()*idx.length)];v[f]--;v[t]++;}return v;}
+  function pick(r){
+    const tot=STYLES.reduce((a,s)=>a+s.w,0); let u=r()*tot;
+    for(let i=0;i<STYLES.length;i++){const s=STYLES[i];if((u-=s.w)<0)return {style:i,v:s.v==="conc"?conc(r):s.v?noisy(s.v,r):randomAlloc(r)};}
+    return {style:6,v:randomAlloc(r)};
+  }
+  // Score a group: returns points per player and, per castle, the share each player gets
+  function score(bids){
+    const n=bids.length, pts=new Array(n).fill(0), shares=[];
+    for(let c=0;c<5;c++){
+      let mx=-1,cnt=0;
+      for(let i=0;i<n;i++){const b=bids[i][c];if(b>mx){mx=b;cnt=1;}else if(b===mx)cnt++;}
+      const sh=new Array(n).fill(0);
+      for(let i=0;i<n;i++)if(bids[i][c]===mx){sh[i]=1/cnt;pts[i]+=(c+1)/cnt;}
+      shares.push(sh);
+    }
+    return {pts,shares};
+  }
+  function rankOf(pts,i){let g=0,t=0;for(let j=0;j<pts.length;j++){if(j===i)continue;if(pts[j]>pts[i]+1e-9)g++;else if(Math.abs(pts[j]-pts[i])<1e-9)t++;}return {g,t};}
+  function payoutOf(pts,i){const {g,t}=rankOf(pts,i);let s=0;for(let p=g;p<=g+t;p++)s+=PAY[p]||0;return s/(t+1);}
+
+  function simulate(me,sims,seed){
+    const r=mulberry32(seed);
+    const out={pts:0,win:0,tie:0,lose:0,castle:[0,0,0,0,0],style:STYLES.map(()=>({s:0,n:0})),place:[0,0,0,0],pay:0};
+    for(let k=0;k<sims;k++){
+      if(GAME===1){
+        const o=pick(r), res=score([me,o.v]), my=res.pts[0], op=res.pts[1];
+        out.pts+=my; out.style[o.style].s+=my; out.style[o.style].n++;
+        if(my>op+1e-9)out.win++; else if(my<op-1e-9)out.lose++; else out.tie++;
+        for(let c=0;c<5;c++)out.castle[c]+=res.shares[c][0];
+      } else {
+        const bids=[me,pick(r).v,pick(r).v,pick(r).v], res=score(bids);
+        out.pts+=res.pts[0];
+        for(let c=0;c<5;c++)out.castle[c]+=res.shares[c][0];
+        const {g,t}=rankOf(res.pts,0), sh=1/(t+1); let pp=0;
+        for(let p=g;p<=g+t;p++){out.place[p]+=sh;pp+=PAY[p];}
+        out.pay+=pp*sh;
+      }
+    }
+    const d=x=>x/sims;
+    return {pts:d(out.pts),win:d(out.win),tie:d(out.tie),lose:d(out.lose),castle:out.castle.map(d),style:out.style.map(s=>s.n?s.s/s.n:0),place:out.place.map(d),pay:d(out.pay)};
+  }
+
+  // ---------- UI ----------
+  document.getElementById("steps").innerHTML=[
+    "You enter how you’d split your 100 soldiers.",
+    "The simulator invents 1 to 9 opponents, based on common ways people play.",
+    "At each castle, the highest number of soldiers takes all the points and everyone else gets 0. Ties split the points."
+  ].map(s=>`<li>${s}</li>`).join("");
+
+  const castleSVG=v=>{const w=24+v*6;return `<svg width="${w}" height="${Math.round(w*0.8)}" viewBox="0 0 40 32" aria-hidden="true"><path d="M2 32V10h5V5h5v5h5V5h6v5h5V5h5v5h5v22H24v-9a4 4 0 0 0-8 0v9Z"/></svg>`;};
+  const planEl=document.getElementById("plan");
+  planEl.innerHTML=[0,1,2,3,4].map(i=>`<label class="pc"><span class="nm">Castle ${i+1}</span><span class="pt">${i+1} point${i?"s":""}</span><input type="number" min="0" max="100" step="1" inputmode="numeric" aria-label="Soldiers for castle ${i+1}"></label>`).join("");
+  const inputs=[...planEl.querySelectorAll("input")];
+  const presetEl=document.getElementById("preset");
+  presetEl.innerHTML=Object.keys(PRESETS).map(k=>`<option>${k}</option>`).join("")+"<option>Custom</option>";
+  const matchPreset=()=>{for(const k in PRESETS)if(PRESETS[k].every((x,i)=>x===plan[i]))return k;return "Custom";};
+  function syncPlan(){inputs.forEach((inp,i)=>inp.value=plan[i]);presetEl.value=matchPreset();updateTotal();}
+  function updateTotal(){
+    const t=plan.reduce((a,b)=>a+b,0), el=document.getElementById("total"), btn=document.getElementById("run");
+    el.textContent=t===100?"Total: 100 of 100 soldiers":`Total: ${t} of 100. ${t<100?"Add "+(100-t):"Remove "+(t-100)} to play.`;
+    el.classList.toggle("bad",t!==100); btn.disabled=t!==100||!STYLES.some(s=>s.w>0);
+  }
+  inputs.forEach((inp,i)=>inp.addEventListener("input",()=>{let v=parseInt(inp.value,10);if(isNaN(v)||v<0)v=0;if(v>100)v=100;plan[i]=v;presetEl.value=matchPreset();updateTotal();}));
+  presetEl.addEventListener("change",()=>{if(PRESETS[presetEl.value]){plan=PRESETS[presetEl.value].slice();syncPlan();}});
+
+  const wEl=document.getElementById("weights");
+  wEl.innerHTML=STYLES.map((s,i)=>`<div class="slider"><div class="lbl"><label for="w${i}">${s.name}</label><output id="wo${i}"></output></div><input type="range" id="w${i}" min="0" max="50" value="${s.w}"><small>${s.hint}</small></div>`).join("")
+    +`<div class="slider" style="margin-top:20px"><div class="lbl"><label for="noise">How much opponents vary from their type</label><output id="noiseOut">${noise}</output></div><input type="range" id="noise" min="0" max="12" value="${noise}"><small>Real people don’t copy a template exactly, so each opponent moves this many soldiers around.</small></div>`;
+  function showW(){const tot=STYLES.reduce((a,s)=>a+s.w,0);STYLES.forEach((s,i)=>document.getElementById("wo"+i).textContent=tot?Math.round(s.w/tot*100)+"%":"0%");}
+  STYLES.forEach((s,i)=>document.getElementById("w"+i).addEventListener("input",e=>{s.w=+e.target.value;showW();updateTotal();}));
+  document.getElementById("noise").addEventListener("input",e=>{noise=+e.target.value;document.getElementById("noiseOut").textContent=noise;});
+  showW();
+
+  const fmt=x=>Number.isInteger(x)?String(x):x.toFixed(1);
+  const hb=(label,frac,val,sub)=>`<div class="hb"><span>${label}${sub?`<small>${sub}</small>`:""}</span><div class="track"><div class="fill" style="width:${Math.max(0,Math.min(1,frac))*100}%"></div></div><span class="v">${val}</span></div>`;
+
+  function playAll(me,opps){
+    return opps.map(o=>{const res=score([me,o.v]);return {o,my:res.pts[0],op:res.pts[1],shares:res.shares.map(s=>s[0])};});
+  }
+
+  const sw=(bg,txt,extra)=>`<span><span class="sw" style="background:${bg};${extra||""}"></span>${txt}</span>`;
+  function runPair(opps,n){
+    document.getElementById("battlesSub").textContent="Your plan is on top, and each row below is one made-up opponent. You battle each opponent separately, one on one, and your score is your average across those battles.";
+    document.getElementById("legend").innerHTML=sw("color-mix(in srgb,var(--good) 40%,transparent)","You beat this opponent at that castle")+sw("color-mix(in srgb,var(--bad) 35%,transparent)","This opponent beat you there")+sw("var(--tie)","Tie","border:1px solid var(--line)");
+    document.getElementById("castlesSub").textContent="For each castle, how many of your one-on-one battles you won it in, and the points it gave you in total.";
+    document.getElementById("compareSub").textContent="The same opponents, played with some common plans instead of yours. Higher average is better. Your plan is highlighted.";
+
+    const games=playAll(plan,opps);
+    const avg=games.reduce((a,g)=>a+g.my,0)/n;
+    const W=games.filter(g=>g.my>g.op+1e-9).length, L=games.filter(g=>g.my<g.op-1e-9).length, T=n-W-L;
+
+    document.getElementById("result").innerHTML=`<div class="stats"><div><b>${avg.toFixed(2)}</b><span>average points (of 15)</span></div><div><b style="color:var(--good)">${W}</b><span>battles won</span></div><div><b>${T}</b><span>ties</span></div><div><b style="color:var(--bad)">${L}</b><span>battles lost</span></div></div>`;
+
+    const head=`<thead><tr><th>Player</th>${[1,2,3,4,5].map(c=>`<th>Castle ${c}<small>${c} pt${c>1?"s":""}</small></th>`).join("")}<th>Your points</th><th>Their points</th><th>Result</th></tr></thead>`;
+    const youRow=`<tr class="mine"><td>You<small>same plan every battle</small></td>${plan.map(x=>`<td>${x}</td>`).join("")}<td></td><td></td><td></td></tr>`;
+    const oppRows=games.map((g,k)=>{
+      const tag=g.my>g.op+1e-9?'<span class="tag w">You win</span>':g.my<g.op-1e-9?'<span class="tag l">You lose</span>':'<span class="tag t">Tie</span>';
+      const cells=g.o.v.map((x,c)=>`<td class="${plan[c]>x?"won":plan[c]<x?"lost":"tie"}">${x}</td>`).join("");
+      return `<tr><td>Opponent ${k+1}<small>${STYLES[g.o.style].name}</small></td>${cells}<td class="me">${fmt(g.my)}</td><td>${fmt(g.op)}</td><td>${tag}</td></tr>`;
+    }).join("");
+    const avgOp=games.reduce((a,g)=>a+g.op,0)/n;
+    const avgRow=`<tr><td><b>Average</b></td><td colspan="5" style="text-align:left;color:var(--muted)">Your score for this round</td><td class="me">${avg.toFixed(2)}</td><td>${avgOp.toFixed(2)}</td><td>${W}W ${T}T ${L}L</td></tr>`;
+    document.getElementById("battles").innerHTML=`<table class="round">${head}<tbody>${youRow}${oppRows}${avgRow}</tbody></table>`;
+
+    const won=[0,1,2,3,4].map(c=>games.reduce((a,g)=>a+g.shares[c],0));
+    const totalPts=won.reduce((a,w,c)=>a+w*(c+1),0);
+    document.getElementById("castles").innerHTML=`<div class="tw"><table><thead><tr><th>Castle</th><th>Your soldiers</th><th>You won it in</th><th>Points you got</th></tr></thead><tbody>`
+      +won.map((w,c)=>`<tr class="${w>0?"mine":""}"><td>Castle ${c+1}<small>${c+1} pt${c?"s":""}</small></td><td>${plan[c]}</td><td>${fmt(w)} of ${n} battles</td><td class="me">+${fmt(w*(c+1))}</td></tr>`).join("")
+      +`<tr><td><b>Total</b></td><td></td><td></td><td class="me">${fmt(totalPts)}</td></tr></tbody></table></div><p style="color:var(--muted);font-size:.82rem;margin-top:8px">A tie at a castle counts as half a win. Your average is the total divided by ${n} battles.</p>`;
+
+    const list=Object.entries(PRESETS); const mineName=matchPreset()==="Custom"?"Your plan":matchPreset();
+    if(mineName==="Your plan")list.unshift(["Your plan",plan.slice()]);
+    const rows=list.map(([name,v])=>{const gs=playAll(v,opps);return {name,v,avg:gs.reduce((a,g)=>a+g.my,0)/n,w:gs.filter(g=>g.my>g.op+1e-9).length};}).sort((a,b)=>b.avg-a.avg);
+    document.getElementById("compare").innerHTML=`<thead><tr><th>Plan</th><th>Soldiers</th><th>Average points (of 15)</th><th>Battles won</th></tr></thead><tbody>`
+      +rows.map(x=>`<tr class="${x.name===mineName?"mine":""}"><td>${x.name===mineName?x.name+" (yours)":x.name}</td><td>${x.v.join(" / ")}</td><td>${x.avg.toFixed(2)}</td><td>${x.w} of ${n}</td></tr>`).join("")+"</tbody>";
+
+    }
+  const ord=k=>["1st","2nd","3rd","4th"][k];
+  function placeLabel(pts,i){const {g,t}=rankOf(pts,i);return t?"Tied "+ord(g):ord(g);}
+  const LETTERS=["A","B","C"];
+  function playGroup(me,opps){const bids=[me,...opps.map(o=>o.v)],res=score(bids);return {bids,res,pay:payoutOf(res.pts,0)};}
+  function runFour(){
+    const n=+document.getElementById("count").value;
+    const groups=[];for(let k=0;k<n;k++)groups.push([pick(Math.random),pick(Math.random),pick(Math.random)]);
+    const played=groups.map(opps=>({opps,...playGroup(plan,opps)}));
+    const avgPay=played.reduce((a,g)=>a+g.pay,0)/n;
+    const places=[0,0,0,0];
+    played.forEach(g=>{const {g:gg,t}=rankOf(g.res.pts,0);for(let p=gg;p<=gg+t;p++)places[p]+=1/(t+1);});
+
+    document.getElementById("battlesSub").textContent="Each group has you and 3 made-up opponents. At each castle, the most soldiers takes all its points and everyone else gets 0. Players are then ranked by castle points and paid 9, 4, 2 or 0.";
+    document.getElementById("legend").innerHTML=sw("color-mix(in srgb,var(--good) 40%,transparent)","Most soldiers at that castle, takes all its points")+sw("var(--tie)","Tied for most, points are split","border:1px solid var(--line)");
+    document.getElementById("castlesSub").textContent="For each castle, how many groups you won it in, and the castle points it gave you.";
+    document.getElementById("compareSub").textContent="The same groups, but with a different plan in your place. Higher average payout is better. Your plan is highlighted.";
+
+    const head=`<thead><tr><th>Group</th><th>Player</th>${[1,2,3,4,5].map(c=>`<th>Castle ${c}<small>${c} pt${c>1?"s":""}</small></th>`).join("")}<th>Points</th><th>Place</th><th>Payout</th></tr></thead>`;
+    const bodies=played.map((g,k)=>{
+      const maxes=[0,1,2,3,4].map(c=>Math.max(...g.bids.map(b=>b[c])));
+      return "<tbody class=\"grp\">"+g.bids.map((b,i)=>{
+        const cells=b.map((x,c)=>{const cnt=g.bids.filter(bb=>bb[c]===maxes[c]).length;return `<td class="${x===maxes[c]?(cnt>1?"shared":"won"):""}">${x}</td>`;}).join("");
+        const name=i===0?"You<small>your plan</small>":`Opponent ${LETTERS[i-1]}<small>${STYLES[g.opps[i-1].style].name}</small>`;
+        return `<tr class="${i===0?"mine":""}">${i===0?`<td rowspan="4" class="gcell">Group ${k+1}</td>`:""}<td>${name}</td>${cells}<td class="${i===0?"me":""}">${fmt(g.res.pts[i])}</td><td>${placeLabel(g.res.pts,i)}</td><td class="${i===0?"me":""}">${fmt(payoutOf(g.res.pts,i))}</td></tr>`;
+      }).join("")+"</tbody>";
+    }).join("");
+    document.getElementById("battles").innerHTML=`<table class="round">${head}${bodies}</table>`;
+
+    const won=[0,1,2,3,4].map(c=>played.reduce((a,g)=>a+g.res.shares[c][0],0));
+    const totalPts=won.reduce((a,w,c)=>a+w*(c+1),0);
+    document.getElementById("castles").innerHTML=`<div class="tw"><table><thead><tr><th>Castle</th><th>Your soldiers</th><th>You won it in</th><th>Points you got</th></tr></thead><tbody>`
+      +won.map((w,c)=>`<tr class="${w>0?"mine":""}"><td>Castle ${c+1}<small>${c+1} pt${c?"s":""}</small></td><td>${plan[c]}</td><td>${fmt(w)} of ${n} groups</td><td class="me">+${fmt(w*(c+1))}</td></tr>`).join("")
+      +`<tr><td><b>Total</b></td><td></td><td></td><td class="me">${fmt(totalPts)}</td></tr></tbody></table></div><p style="color:var(--muted);font-size:.82rem;margin-top:8px">A shared castle counts as part of a win. Castle points only decide your place; the payout is what counts.</p>`;
+
+    const list=Object.entries(PRESETS); const mineName=matchPreset()==="Custom"?"Your plan":matchPreset();
+    if(mineName==="Your plan")list.unshift(["Your plan",plan.slice()]);
+    const cmp=list.map(([name,v])=>{const ps=groups.map(opps=>playGroup(v,opps));let first=0;ps.forEach(p=>{const {g,t}=rankOf(p.res.pts,0);if(g===0)first+=1/(t+1);});return {name,v,avg:ps.reduce((a,p)=>a+p.pay,0)/n,first};}).sort((a,b)=>b.avg-a.avg);
+    document.getElementById("compare").innerHTML=`<thead><tr><th>Plan</th><th>Soldiers</th><th>Average payout (of 9)</th><th>Times 1st</th></tr></thead><tbody>`
+      +cmp.map(x=>`<tr class="${x.name===mineName?"mine":""}"><td>${x.name===mineName?x.name+" (yours)":x.name}</td><td>${x.v.join(" / ")}</td><td>${x.avg.toFixed(2)}</td><td>${fmt(x.first)} of ${n}</td></tr>`).join("")+"</tbody>";
+
+    document.getElementById("result").innerHTML=`<div class="stats"><div><b>${avgPay.toFixed(2)}</b><span>average payout (of 9)</span></div><div><b style="color:var(--good)">${fmt(places[0])}</b><span>times 1st</span></div><div><b>${fmt(places[1])}</b><span>times 2nd</span></div><div><b>${fmt(places[2])}</b><span>times 3rd</span></div><div><b style="color:var(--bad)">${fmt(places[3])}</b><span>times 4th</span></div></div>`;
+    document.getElementById("status").textContent=`Played ${n} group${n>1?"s":""} of 4 with new opponents.`;
+  }
+  const MODES={
+    pair:{title:"Head to head simulator",battles:"Every battle",countLabel:"Opponents",counts:[1,2,3,4,5,6,7,8,9],def:1,plan:"My Game 1 plan",
+      rules:[["Your army","You have 100 soldiers. Split them across the 5 castles in whole numbers. The total must be exactly 100."],
+             ["The castles","Castle 1 is worth 1 point, castle 2 is worth 2, and so on up to castle 5, worth 5. That’s 15 points in total."],
+             ["Winning a castle","You battle each opponent one on one. Whoever sends more soldiers to a castle wins its points. A tie splits them."],
+             ["Your score","Add up your castle points in each battle. Your score is your average across all your battles, out of 15."]],
+      steps:["You enter how you’d split your 100 soldiers.","The simulator invents 1 to 9 opponents, based on common ways people play.","You battle each opponent one on one, and your score is your average points, just like the real game."]},
+    four:{title:"Four-way battle simulator",battles:"Every group",countLabel:"Groups to play",counts:[1,2,3,4,5,6,7,8,9,10],def:1,plan:"My Game 2 plan",
+      rules:[["Your army","You have 100 soldiers to split across 5 castles worth 1, 2, 3, 4 and 5 points. Whole numbers only, adding up to exactly 100."],
+             ["Winning a castle","You’re in a random group of 4 players. Whoever sends the most soldiers to a castle takes all its points. If players tie for the most, they split the points."],
+             ["Ranking and payout","Players are ranked by total castle points. 1st gets 9, 2nd gets 4, 3rd gets 2 and 4th gets 0. Players tied in the ranking split the payouts for those places."],
+             ["Your score","Only your payout counts, not your castle points. Groups are reshuffled many times and your score is your average payout, out of 9."]],
+      steps:["You enter how you’d split your 100 soldiers.","The simulator makes 1 to 10 groups, each with you and 3 made-up opponents based on common ways people play.","Each group is scored and ranked, and your score is your average payout across the groups, just like the real game."]}
+  };
+  function applyMode(mode){
+    const M=MODES[mode];
+    document.body.dataset.game=mode;
+    document.getElementById("title").textContent=M.title;
+    document.getElementById("battlesTitle").textContent=M.battles;
+    document.getElementById("rgrid").innerHTML=M.rules.map(([h,p])=>`<div><h3>${h}</h3><p>${p}</p></div>`).join("");
+    document.getElementById("steps").innerHTML=M.steps.map(s=>`<li>${s}</li>`).join("");
+    document.getElementById("countLabel").textContent=M.countLabel;
+    document.getElementById("count").innerHTML=M.counts.map(c=>`<option${c===M.def?" selected":""}>${c}</option>`).join("");
+    syncPlan();
+  }
+  function run(){
+    const mode=document.getElementById("mode").value;
+    if(mode==="pair"){
+      const n=+document.getElementById("count").value;
+      const opps=[];for(let i=0;i<n;i++)opps.push(pick(Math.random));
+      runPair(opps,n);
+      document.getElementById("status").textContent=`Played ${n} one-on-one battle${n>1?"s":""} against new opponents.`;
+    } else runFour();
+  }
+  document.getElementById("mode").addEventListener("change",e=>{applyMode(e.target.value);run();});
+  document.getElementById("run").addEventListener("click",run);
+  applyMode(document.getElementById("mode").value); run();
+})();
+</script>
+</body>
+</html>
