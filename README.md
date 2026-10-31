@@ -4,7 +4,7 @@ An interactive browser simulator for testing how a 100-soldier plan performs acr
 
 ## Run it
 
-Open [`Castle battle simulator.html`](./Castle%20battle%20simulator.html) in a modern browser.
+Open [`index.html`](./index.html) in a modern browser.
 
 The page uses Google Fonts when online, but the simulator itself runs entirely in the browser. No server is required.
 
@@ -69,6 +69,6 @@ Open **Change the opponent mix** to adjust the style weights and how much each o
 
 ```text
 .
-├── Castle battle simulator.html
+├── index.html
 └── README.md
 ```
