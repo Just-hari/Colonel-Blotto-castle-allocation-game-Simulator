@@ -1,4 +1,4 @@
-# Head-to-Head Simulator
+# Colonel Blotto castle allocation game Simulator
 
 An interactive browser simulator for testing how a 100-soldier plan performs across five castles. The project is a single HTML file with no build step or runtime dependencies.
 
